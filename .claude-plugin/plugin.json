@@ -1,7 +1,7 @@
 {
   "name": "compact-diff",
   "displayName": "compact-diff",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "See what /compact and auto-compaction dropped from your Claude Code session, and put the critical pieces back.",
   "author": {
     "name": "bishtashish708",

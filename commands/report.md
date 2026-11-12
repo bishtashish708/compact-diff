@@ -1,6 +1,6 @@
 ---
 description: Show what the last compaction dropped from this session, and what compact-diff re-injected
-allowed-tools: Bash(python3:*)
+allowed-tools: Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py" report --here --show-injected)
 ---
 
 The latest compact-diff report for this project:
