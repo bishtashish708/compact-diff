@@ -164,7 +164,13 @@ Decisions                  20       2        7       11      72%
 
 ## Privacy
 
-compact-diff reads the session transcript that Claude Code passes to hooks. It writes small JSON and Markdown files to the plugin's data directory, which Claude Code deletes when you uninstall the plugin. It makes no network requests and no model calls.
+compact-diff reads the session transcript that Claude Code passes to hooks. It writes small JSON and Markdown files to the plugin's data directory, which Claude Code deletes when you uninstall the plugin. It makes no network requests and no model calls. See [PRIVACY.md](PRIVACY.md).
+
+**What it runs.**
+- `PreCompact`, `PostCompact` and `SessionStart` run `python3 scripts/cdiff.py` (stdlib only).
+- `UserPromptSubmit` and `PostToolUse` run `sh scripts/deliver-guard.sh`, which lists the plugin's `flags/` folder and starts Python only when a report is waiting.
+- `/compact-diff:report` runs `python3 scripts/cdiff.py report`.
+- Nothing is downloaded or installed.
 
 ## Development
 

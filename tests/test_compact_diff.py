@@ -380,8 +380,22 @@ class PluginLayoutTests(unittest.TestCase):
         self.assertEqual(hooks_cfg["SessionStart"][0]["matcher"], "compact")
         for ev, groups in hooks_cfg.items():
             cmd = groups[0]["hooks"][0]["command"]
-            self.assertIn('"${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py"', cmd)
-            self.assertTrue(cmd.endswith("Deliver" if ev in ("UserPromptSubmit", "PostToolUse") else ev))
+            if ev in ("UserPromptSubmit", "PostToolUse"):
+                self.assertEqual(cmd, 'sh "${CLAUDE_PLUGIN_ROOT}/scripts/deliver-guard.sh"')
+            else:
+                self.assertEqual(cmd, f'python3 "${{CLAUDE_PLUGIN_ROOT}}/scripts/cdiff.py" hook {ev}')
+
+    def test_hook_commands_meet_directory_rules(self):
+        # Directory validation blocks hook commands with variables other than
+        # ${CLAUDE_PLUGIN_ROOT}, command substitution, wildcards or inline programs.
+        import re
+        hooks_cfg = json.loads((ROOT / "hooks" / "hooks.json").read_text())["hooks"]
+        for groups in hooks_cfg.values():
+            for g in groups:
+                for h in g["hooks"]:
+                    cmd = h["command"].replace("${CLAUDE_PLUGIN_ROOT}", "")
+                    self.assertNotRegex(cmd, r"\$|`|\*|\?| -c ", h["command"])
+        self.assertNotIn("$", (ROOT / "commands" / "report.md").read_text().split("!`", 1)[1].split("`", 1)[0].replace("${CLAUDE_PLUGIN_ROOT}", ""))
 
     @unittest.skipIf(sys.platform == "win32", "POSIX shell guard")
     def test_shell_guard(self):
@@ -401,7 +415,10 @@ class PluginLayoutTests(unittest.TestCase):
             self.assertFalse(marker.exists())
             os.makedirs(os.path.join(state, "flags"))
             Path(state, "flags", "s9").write_text("1")
-            r = subprocess.run(["/bin/sh", "-c", cmd.replace("python3", sys.executable)],
+            real = Path(state, "realbin"); real.mkdir()
+            (real / "python3").symlink_to(sys.executable)
+            env["PATH"] = f"{real}:/bin:/usr/bin"
+            r = subprocess.run(["/bin/sh", "-c", cmd],
                                input=json.dumps({"session_id": "s9", "hook_event_name": "PostToolUse"}),
                                capture_output=True, text=True, env=env)
             self.assertEqual(r.returncode, 0, r.stderr)

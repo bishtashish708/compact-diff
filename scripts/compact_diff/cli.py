@@ -107,6 +107,8 @@ def _cmd_scan(args: argparse.Namespace) -> int:
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
+    if args.here and not args.cwd:
+        args.cwd = os.getcwd()
     path = store.latest_report(cwd=args.cwd, session_id=args.session)
     if path is None and args.cwd and not args.session:
         path = store.latest_report()
@@ -155,6 +157,7 @@ def main(argv: list[str] | None = None) -> int:
 
     r = sub.add_parser("report", help="print the latest live report")
     r.add_argument("--cwd", default=None)
+    r.add_argument("--here", action="store_true", help="latest report for the current directory")
     r.add_argument("--session", default=None)
     r.add_argument("--show-injected", action="store_true")
     r.set_defaults(fn=_cmd_report)

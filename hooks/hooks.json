@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "d=\"${COMPACT_DIFF_HOME:-${CLAUDE_PLUGIN_DATA:-$HOME/.local/state/compact-diff}}/flags\"; [ -n \"$(ls -A \"$d\" 2>/dev/null)\" ] || exit 0; exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py\" hook Deliver",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/deliver-guard.sh\"",
             "timeout": 15
           }
         ]
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "d=\"${COMPACT_DIFF_HOME:-${CLAUDE_PLUGIN_DATA:-$HOME/.local/state/compact-diff}}/flags\"; [ -n \"$(ls -A \"$d\" 2>/dev/null)\" ] || exit 0; exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py\" hook Deliver",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/deliver-guard.sh\"",
             "timeout": 15
           }
         ]

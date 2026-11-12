@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1f2430"/>
+  <!-- before: full stack of lines -->
+  <g fill="#8b93a7">
+    <rect x="92" y="132" width="132" height="22" rx="11"/>
+    <rect x="92" y="180" width="132" height="22" rx="11"/>
+    <rect x="92" y="228" width="132" height="22" rx="11"/>
+    <rect x="92" y="276" width="132" height="22" rx="11"/>
+    <rect x="92" y="324" width="132" height="22" rx="11"/>
+    <rect x="92" y="372" width="132" height="22" rx="11"/>
+  </g>
+  <!-- after: compacted, with the dropped lines highlighted -->
+  <g>
+    <rect x="288" y="132" width="132" height="22" rx="11" fill="#8b93a7"/>
+    <rect x="288" y="180" width="132" height="22" rx="11" fill="#f2a65a"/>
+    <rect x="288" y="228" width="132" height="22" rx="11" fill="#8b93a7"/>
+    <rect x="288" y="276" width="132" height="22" rx="11" fill="#f2a65a"/>
+  </g>
+  <path d="M240 263 h24" stroke="#f2a65a" stroke-width="14" stroke-linecap="round"/>
+  <path d="M300 366 l34 34 l80 -80" fill="none" stroke="#6cc68b" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

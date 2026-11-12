@@ -1,11 +1,26 @@
 {
   "name": "compact-diff",
   "displayName": "compact-diff",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "See what /compact and auto-compaction dropped from your Claude Code session, and put the critical pieces back.",
-  "author": { "name": "bishtashish708", "url": "https://github.com/bishtashish708" },
+  "author": {
+    "name": "bishtashish708",
+    "url": "https://github.com/bishtashish708"
+  },
   "homepage": "https://github.com/bishtashish708/compact-diff",
   "repository": "https://github.com/bishtashish708/compact-diff",
   "license": "MIT",
-  "keywords": ["compaction", "context", "hooks", "memory", "audit", "precompact", "postcompact"]
+  "keywords": [
+    "compaction",
+    "context",
+    "hooks",
+    "memory",
+    "audit",
+    "precompact",
+    "postcompact"
+  ],
+  "icon": "./assets/icon.png",
+  "documentationUrl": "https://github.com/bishtashish708/compact-diff#readme",
+  "supportUrl": "https://github.com/bishtashish708/compact-diff/issues",
+  "privacyPolicyUrl": "https://github.com/bishtashish708/compact-diff/blob/main/PRIVACY.md"
 }
