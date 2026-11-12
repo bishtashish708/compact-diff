@@ -55,6 +55,7 @@ def pre_compact(payload: dict[str, Any]) -> tuple[str, int]:
             "cwd": cwd,
             "transcript_path": path,
             "compactions_before": len(segs) - 1,
+            "transcript_entries": len(entries),
             "steered": bool(steer),
             "session_id": payload.get("session_id"),
             "items": [i.to_dict() for i in items],
@@ -71,6 +72,12 @@ def _finish(payload: dict[str, Any], summary: str, source: str) -> dict[str, Any
     if not pending:
         return None
     items = [extract.Item.from_dict(d) for d in pending.get("items", [])]
+    snapshot = "precompact"
+    if not items and pending.get("transcript_entries", 1) == 0:
+        late = _late_items(pending)
+        if late is None:
+            return None  # transcript still not written; caller retries later
+        items, snapshot = late, "late (transcript was empty at PreCompact, e.g. a forked session)"
     verdicts = match.audit(items, summary)
     inject_text, n = render.reinjection(verdicts)
     stamp = store.stamp()
@@ -81,6 +88,7 @@ def _finish(payload: dict[str, Any], summary: str, source: str) -> dict[str, Any
         "session_id": payload.get("session_id"),
         "steered": pending.get("steered"),
         "summary_source": source,
+        "snapshot": snapshot,
         "reinjected": n if _enabled(INJECT_ENV) else 0,
     }
     report = {
@@ -101,10 +109,33 @@ def _finish(payload: dict[str, Any], summary: str, source: str) -> dict[str, Any
     return report
 
 
+def _late_items(pending: dict[str, Any]) -> list[extract.Item] | None:
+    """Extract state after the fact from the compacted window, once the transcript exists.
+
+    With ``--fork-session`` the new transcript is not on disk when PreCompact fires, so
+    the snapshot is empty. After compaction the file holds the pre-compaction history,
+    followed by the boundary.
+    """
+    cb = int(pending.get("compactions_before") or 0)
+    segs = tx.segments(tx.load(pending.get("transcript_path") or ""))
+    if len(segs) - 1 <= cb:
+        return None
+    seen: list[dict[str, Any]] = []
+    for seg in segs[: cb + 1]:
+        seen.extend(seg.entries)
+    return extract.extract_state(seen, segs[cb].entries, pending.get("cwd"))
+
+
 def post_compact(payload: dict[str, Any]) -> tuple[str, int]:
     summary = payload.get("compact_summary")
     if isinstance(summary, str) and summary.strip():
-        _finish(payload, summary, "PostCompact.compact_summary")
+        if _finish(payload, summary, "PostCompact.compact_summary") is None:
+            # Snapshot not recoverable yet: keep the summary for the delivery hook.
+            sdir = store.session_dir(payload.get("session_id", "unknown"))
+            pending = store.read_json(sdir / "pending.json")
+            if pending is not None:
+                pending["summary"] = summary
+                store.write_json(sdir / "pending.json", pending)
     return "", 0
 
 
@@ -125,13 +156,12 @@ def deliver(payload: dict[str, Any], event: str) -> tuple[str, int]:
     sdir = store.session_dir(sid)
     pending = store.read_json(sdir / "pending.json")
     if pending:
-        summary = _summary_from_transcript(
+        summary = pending.get("summary") or _summary_from_transcript(
             payload.get("transcript_path") or pending.get("transcript_path") or "",
             int(pending.get("compactions_before") or 0),
         )
-        if summary:
-            _finish(payload, summary, "transcript")
-        else:
+        finished = _finish(payload, summary, "PostCompact.compact_summary" if pending.get("summary") else "transcript") if summary else None
+        if finished is None:
             if time.time() - float(pending.get("created") or 0) > GIVE_UP_AFTER_S:
                 store.clear_flag(sid)  # compaction was probably blocked or never finished
             return "", 0  # PostCompact hasn't run yet; try again on the next hook

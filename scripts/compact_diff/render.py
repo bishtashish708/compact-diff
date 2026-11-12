@@ -92,6 +92,10 @@ def report_markdown(verdicts: list[Verdict], meta: dict) -> str:
         f"- Project: `{meta.get('cwd', '?')}`  ",
         f"- Summary steered by PreCompact hook: {'yes' if meta.get('steered') else 'no'}  ",
         f"- Re-injected after compaction: {meta.get('reinjected', 0)} item(s)",
+    ]
+    if str(meta.get("snapshot", "")).startswith("late"):
+        lines.append(f"- Snapshot: {meta['snapshot']}")
+    lines += [
         "",
         f"**Kept {c[KEPT]} · Partial {c[PARTIAL]} · Dropped {c[DROPPED]}** of {len(verdicts)} tracked items.",
         "",

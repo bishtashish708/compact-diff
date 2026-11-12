@@ -134,6 +134,14 @@ class MatchTests(unittest.TestCase):
         self.assertEqual(verdicts["Update the README auth section"], match.KEPT)
         self.assertEqual(verdicts["Add refresh-token rotation to the API gateway"], match.DROPPED)
 
+    def test_file_stem_without_extension(self):
+        item = extract.Item("file", "tests/test_pricing.py", "high", anchors=["test_pricing.py"])
+        self.assertEqual(match.judge(item, match.Summary("Tests: test_cli, test_pricing, test_budget.")).status, match.KEPT)
+        plain = extract.Item("file", "src/session.ts", "high", anchors=["session.ts"])
+        self.assertEqual(match.judge(plain, match.Summary("This session is being continued.")).status, match.DROPPED)
+        generic = extract.Item("file", "src/utils.py", "high", anchors=["utils.py"])
+        self.assertEqual(match.judge(generic, match.Summary("We cleaned up utils.")).status, match.DROPPED)
+
     def test_negation_guard(self):
         item = extract.Item("instruction", "Never deploy the staging database migrations on Friday.", "critical")
         v = match.judge(item, match.Summary("We deploy the staging database migrations on Friday."))
@@ -240,6 +248,24 @@ class HookLifecycleTests(TempStateMixin, unittest.TestCase):
         self.assertEqual(hooks.run("Deliver", json.dumps({**self.base, "hook_event_name": "PostToolUse"})), ("", 0))
         report = store.read_json(store.latest_report())
         self.assertEqual(report["meta"]["delivered_via"], "UserPromptSubmit")
+
+    def test_forked_session_empty_transcript_at_precompact(self):
+        # Observed with `claude --resume X --fork-session`: the fork's transcript is not on
+        # disk when PreCompact fires. The audit must recover once the file is written.
+        fork = os.path.join(self.tmp.name, "fork.jsonl")
+        base = {**self.base, "session_id": "fork1", "transcript_path": fork}
+        out, _ = hooks.run("PreCompact", json.dumps({**base, "trigger": "manual"}))
+        self.assertEqual(out, "")  # nothing to steer with
+        hooks.run("PostCompact", json.dumps({**base, "compact_summary": build.SUMMARY}))
+        self.assertIsNone(store.latest_report(session_id="fork1"))
+        self.assertEqual(hooks.run("Deliver", json.dumps({**base, "hook_event_name": "PostToolUse"})), ("", 0))
+        build.write(fork)  # Claude Code writes the fork's history after compaction
+        out, _ = hooks.run("Deliver", json.dumps({**base, "hook_event_name": "UserPromptSubmit"}))
+        data = json.loads(out)
+        self.assertIn("Never push to main directly", data["hookSpecificOutput"]["additionalContext"])
+        report = store.read_json(store.latest_report(session_id="fork1"))
+        self.assertTrue(report["meta"]["snapshot"].startswith("late"))
+        self.assertEqual(report["meta"]["summary_source"], "PostCompact.compact_summary")
 
     def test_old_summary_is_not_reused(self):
         # A transcript that already had one compaction: its summary must not be taken

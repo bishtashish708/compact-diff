@@ -8,6 +8,7 @@ mentions ``auth.py`` has kept that file regardless of wording.
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 
@@ -54,6 +55,24 @@ def tokens(text: str) -> set[str]:
     return out
 
 
+_GENERIC_STEMS = {
+    "index", "main", "utils", "util", "readme", "init", "__init__", "config", "setup", "test", "tests",
+    "app", "core", "base", "common", "types", "helpers", "constants", "settings", "license", "package",
+    "conftest", "makefile", "dockerfile", "changelog", "server", "client", "models", "views",
+}
+
+
+def _stem_mentioned(basename: str, text: str) -> bool:
+    """True if a distinctive, code-like file stem (``test_cli`` for ``test_cli.py``) appears as a whole word."""
+    stem = os.path.splitext(basename)[0]
+    if len(stem) < 6 or stem.lower() in _GENERIC_STEMS:
+        return False
+    # Only code-like stems: a plain word ("session", "billing") also appears in ordinary prose.
+    if not re.search(r"[_\-0-9]|[a-z][A-Z]", stem):
+        return False
+    return re.search(r"(?<![\w.-])" + re.escape(stem) + r"(?![\w-])", text, re.I) is not None
+
+
 def _has_negation(text: str) -> bool:
     low = " " + text.lower().replace("’", "'") + " "
     return any(f" {n} " in low or f" {n}," in low for n in _NEGATIONS) or "n't " in low
@@ -96,6 +115,9 @@ def judge(item: Item, summary: Summary) -> Verdict:
     if anchors and all(a.lower() in summary.lower for a in anchors):
         if item.kind in ("file", "error"):
             return Verdict(item, KEPT, 1.0, f"mentions {', '.join(anchors)}")
+    if item.kind == "file" and anchors and all(_stem_mentioned(a, summary.text) for a in anchors):
+        # Summaries often list files without extensions: "tests: test_cli, test_pricing".
+        return Verdict(item, KEPT, 0.9, "mentions " + ", ".join(os.path.splitext(a)[0] for a in anchors))
     toks = tokens(item.text)
     score, evidence = summary.best_window(toks)
     if item.kind == "file":
