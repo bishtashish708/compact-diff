@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+# never commit real session transcripts
+*.jsonl
+!examples/*.jsonl

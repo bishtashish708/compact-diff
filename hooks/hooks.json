@@ -1,0 +1,61 @@
+{
+  "description": "compact-diff: snapshot working state before compaction, diff it against the summary after, re-inject what was dropped. UserPromptSubmit/PostToolUse only start Python when a compaction report is waiting to be delivered.",
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py\" hook PreCompact",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py\" hook PostCompact",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py\" hook SessionStart",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"${COMPACT_DIFF_HOME:-${CLAUDE_PLUGIN_DATA:-$HOME/.local/state/compact-diff}}/flags\"; [ -n \"$(ls -A \"$d\" 2>/dev/null)\" ] || exit 0; exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py\" hook Deliver",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"${COMPACT_DIFF_HOME:-${CLAUDE_PLUGIN_DATA:-$HOME/.local/state/compact-diff}}/flags\"; [ -n \"$(ls -A \"$d\" 2>/dev/null)\" ] || exit 0; exec python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/cdiff.py\" hook Deliver",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

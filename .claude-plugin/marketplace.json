@@ -1,0 +1,15 @@
+{
+  "name": "compact-diff",
+  "description": "compact-diff: an audit trail for Claude Code compaction.",
+  "owner": {
+    "name": "bishtashish708",
+    "url": "https://github.com/bishtashish708"
+  },
+  "plugins": [
+    {
+      "name": "compact-diff",
+      "source": "./",
+      "description": "See what /compact and auto-compaction dropped, and re-inject the critical pieces."
+    }
+  ]
+}
