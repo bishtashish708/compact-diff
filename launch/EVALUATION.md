@@ -108,7 +108,7 @@ We searched the grid kept ∈ [0.40, 0.90] × partial ∈ [0.10, 0.70] and score
 - **Best in-sample point (0.70, 0.20):** +0.012 macro-F1 and −0.6 points of accuracy, which is within noise.
 - **Instructions only:** held-out accuracy 48.3% tuned vs 50.0% default.
 
-**The defaults stay.** Moving thresholds doesn't help: the instruction errors come from paraphrase, which lexical scoring can't see. The next accuracy gain needs a semantic matcher (roadmap).
+**The defaults stay.** Moving thresholds doesn't help: the instruction errors come from paraphrase, which lexical scoring can't see. A semantic matcher would be a possible next step for accuracy.
 
 ## 4. Does steering the summary help? Yes for rules, no overall
 
@@ -133,10 +133,10 @@ Item by item:
 - **Regressed:** of the 75 items kept in both unsteered runs, the steered run lost 17. **16 of those were files from one session**, whose steered summary came out about half the length of its unsteered summaries (12k vs 20–23k characters). It kept the rules and dropped the file list.
 - **By session:** steering lowered the not-fully-kept share in 3 sessions, tied in 1, and raised it in 1 (that same session).
 
-Reading: **steering shifts what survives toward the things it names first** (rules, then tasks and errors). In one of five sessions it cost the file list. Rules are the costly thing to lose, while files are cheap to restore and compact-diff re-injects them anyway, so steering stays **on by default**. Two changes follow:
+Reading: **steering shifts what survives toward the things it names first** (rules, then tasks and errors). In one of five sessions it cost the file list. Rules are the costly thing to lose, while files are cheap to restore and compact-diff re-injects them anyway, so steering stays **on by default**. Two consequences:
 
 - **Already true.** The steering note lists rules first, then tasks and errors, then files.
-- **Roadmap.** Drop the file list from the steering note when it's long, and rely on re-injection for files.
+- **A possible next step.** Drop the file list from the steering note when it's long, and rely on re-injection for files.
 
 Caveats: 5 sessions and one steered run each, on Haiku, with a different annotator per arm. Steering went through `/compact <note>` rather than the hook. This is a direction, not a measurement of effect size.
 
