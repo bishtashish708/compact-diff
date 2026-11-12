@@ -1,16 +1,8 @@
-<!--
-DRAFT: NOT APPROVED, NOT PUBLISHED. Numbers come from launch/EVALUATION.md (aggregates only).
-
-Placeholders to fill (find them all with: grep -n "TODO(" launch/draft-how-much-does-compaction-drop.md):
-  TODO(byline)     your name or handle, and the publish date
-On approval: remove this comment and the "Draft." line under the title.
--->
-
 # How much does Claude Code compaction drop?
 
-*Draft. 12 real compactions, 329 labelled pieces of working state, a steering experiment, and one surprise about hook ordering.*
+*12 real compactions, 329 labelled pieces of working state, a steering experiment, and one surprise about hook ordering.*
 
-*By **TODO(byline): name or handle** · TODO(byline): date*
+*By **bishtashish708** · November 12, 2026*
 
 ![compact-diff in a real Claude Code session](https://github.com/bishtashish708/compact-diff/raw/main/launch/demo/real-demo.gif)
 

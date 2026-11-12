@@ -187,7 +187,7 @@ claude plugin validate . --strict
 ## Demo plan
 
 1. **30-second GIF.** Done: [`launch/demo/`](launch/demo/), a replay of the real hook code on the synthetic session. A real Claude Code session is in [`launch/demo/real-demo.gif`](launch/demo/real-demo.gif).
-2. **"How much does compaction drop?" post.** Drafted in [`launch/draft-how-much-does-compaction-drop.md`](launch/draft-how-much-does-compaction-drop.md). Still to do: aggregates from a few volunteers' `scan` runs.
+2. **"How much does compaction drop?" post.** Published as [`launch/how-much-does-compaction-drop.md`](launch/how-much-does-compaction-drop.md). Still to do: aggregates from a few volunteers' `scan` runs.
 3. Reply on #89831 and #29890 with the report screenshot and the install line.
 
 ## Roadmap
