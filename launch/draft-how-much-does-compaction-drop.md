@@ -24,12 +24,12 @@ I built [compact-diff](https://github.com/bishtashish708/compact-diff), a Claude
 
 Over 12 real compactions, about **27% of tracked working state didn't fully survive** the summary. It depends heavily on the kind of state:
 
-| What | Not fully kept |
-| :- | -: |
-| Errors that were still unresolved | **71%** |
-| Decisions ("going with X instead of Y") | 55% |
-| **Rules the user gave** ("never…", "don't…", "use X, not Y") | **42%** |
-| Files that were edited | 12% |
+| What | Items | Not fully kept |
+| :- | -: | -: |
+| Errors that were still unresolved | 17 | **71%** |
+| Decisions ("going with X instead of Y") | 11 | 55% |
+| **Rules the user gave** ("never…", "don't…", "use X, not Y") | 120 | **42%** |
+| Files that were edited | 179 | 12% |
 
 Two more findings stood out.
 
@@ -94,7 +94,7 @@ Claude Code has three hook points around compaction:
 - **`PostCompact`**: receives the finished `compact_summary`, but can't add anything to Claude's context.
 - **`SessionStart`** with matcher `compact`: can add context.
 
-The natural design diffs in PostCompact, then re-injects the gaps from SessionStart. **That doesn't work.** In Claude Code 2.1.252, `SessionStart:compact` fires *before* `PostCompact`, about 36 ms earlier in my run. The summary isn't in the transcript yet either. So at SessionStart you have nothing to diff against.
+The natural design diffs in PostCompact, then re-injects the gaps from SessionStart. **That doesn't work.** In Claude Code 2.1.252, `SessionStart:compact` fires *before* `PostCompact`, about 36 ms earlier in my run. The summary isn't in the transcript yet either. So at SessionStart you have nothing to diff against. I haven't re-measured the exact order on later versions, and compact-diff works whichever hook comes first; the demo above was recorded on 2.1.322.
 
 compact-diff handles this by delivering on whichever comes next, the next `UserPromptSubmit` or the next `PostToolUse` (auto-compaction often happens mid-turn). A shell guard keeps those hooks from starting Python unless a report is waiting.
 
@@ -114,7 +114,7 @@ git clone https://github.com/bishtashish708/compact-diff && cd compact-diff
 python3 scripts/cdiff.py scan ~/.claude/projects
 ```
 
-It's local only: no network calls, no model calls, stdlib Python.
+It's local only: no network calls, no model calls, stdlib Python. It needs `python3` 3.9 or later. I've used it on macOS, CI runs the tests on Linux too, and Windows is untested.
 
 ## What's next
 
