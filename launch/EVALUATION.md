@@ -1,4 +1,4 @@
-# compact-diff evaluation, v0.1 (November 2026)
+# compact-diff evaluation, v0.2 (November 2026)
 
 How often does Claude Code compaction lose working state? How well does compact-diff detect it? This page reports **aggregate numbers only**. No transcript text, rule text, paths or usernames appear here or anywhere else in the repo.
 
@@ -8,7 +8,7 @@ How often does Claude Code compaction lose working state? How well does compact-
 | :- | :- |
 | Compactions | **12 real compactions** from one developer's machine |
 | Historical | 2 auto-compactions from one long coding session, which happened during normal use |
-| Created for this eval | 10 manual compactions. We forked 5 sessions that had never been compacted (67k–99k tokens of context each) with `claude --resume <id> --fork-session` and ran `/compact` twice per fork with Haiku 4.5. That cost $0.64 at API prices; the original sessions were not touched. |
+| Created for this eval | 10 manual compactions. We forked 5 sessions that had never been compacted (67k–99k tokens of context each) with `claude --resume <id> --fork-session` and ran `/compact` twice per fork with Haiku 4.5, for $0.64 at API prices. 5 more steered runs, for $0.45, are used only in section 4. The original sessions were not touched. |
 | Items | compact-diff extracted 364 items. Annotators judged **329 of them real working state**; see Extraction precision below. |
 | Labels | Blind labels against a written rubric ([`eval/RUBRIC.md`](eval/RUBRIC.md)). Each packet held the summary plus the item list, never the tool's verdict. **The annotators were Claude subagents, not humans**, with one annotator per packet and no inter-annotator agreement measured. A human pass is on the roadmap. |
 | Goal vs. reality | We aimed for 30–50 compactions. The machine had only 2, so the other 10 were created as described above. |
@@ -75,6 +75,17 @@ The annotators judged whether each extracted item was real working state:
 
 The false "instructions" are mostly spec prose and background text inside long prompts. Most false "decisions" are observations or open questions.
 
+**v0.2 rule filter** ([`f66ae4a`](https://github.com/bishtashish708/compact-diff/commit/f66ae4a)) rejects three kinds of sentence unless a strong rule word (never, don't, must, always…) is present: quoted text (UI copy, prompt templates), short headings whose rule word appears only inside parentheses, and past-tense narrative. Re-measured on the same labelled set:
+
+| | Before | After |
+| :- | -: | -: |
+| Instruction extraction precision | 120 / 146 (82.2%) | 118 / 132 (**89.4%**) |
+| All-kind extraction precision | 329 / 364 (90.4%) | 327 / 350 (93.4%) |
+| Real items lost by the filter | | 2 (one borderline spec row, counted in two packets) |
+| Detector: lost recall / lost precision | 94.4% / 64.9% | 95.5% / 64.6% |
+
+The filters were designed by looking at these same labelled items, so the gain is **in-sample**. Expect less on new data. The detector numbers barely move, as expected, because the filter changes which items are extracted, not how they're matched.
+
 ## 3. Threshold tuning: no change
 
 We searched the grid kept ∈ [0.40, 0.90] × partial ∈ [0.10, 0.70] and scored it with leave-one-compaction-out cross-validation:
@@ -85,13 +96,35 @@ We searched the grid kept ∈ [0.40, 0.90] × partial ∈ [0.10, 0.70] and score
 
 **The defaults stay.** Moving thresholds doesn't help: the instruction errors come from paraphrase, which lexical scoring can't see. The next accuracy gain needs a semantic matcher (roadmap).
 
-## 4. Steering (`COMPACT_DIFF_STEER`): not measured yet
+## 4. Does steering the summary help? Yes for rules, no overall
 
-The plan was to compact each fork once with the PreCompact steering note and once without. Both arms turned out to be unsteered. With `--fork-session`, the new session's transcript isn't on disk when PreCompact fires, so the snapshot was empty and no steering note was printed. The 10 runs are therefore 5 pairs of **unsteered** compactions, which is where the run-to-run randomness figure above comes from.
+PreCompact steering means asking the summariser to keep the extracted items. We tested it on the same 5 sessions:
 
-- **Plugin fix:** the audit now re-extracts the snapshot after the fact for forked sessions ([`817e8f1`](https://github.com/bishtashish708/compact-diff/commit/817e8f1)). Steering still can't work in that case.
-- **What we have:** one live anecdote, where a steered summary kept the session's rules. That's n=1, not evidence.
-- **Next experiment:** 5 sessions × steered vs. unsteered, with the steering text passed as `/compact <instructions>` so it doesn't depend on the hook. That's 5 more Haiku compactions.
+- **Unsteered:** the 10 runs above, two per session. They ended up unsteered because, with `--fork-session`, the fork's transcript isn't on disk when PreCompact fires, so the hook had nothing to steer with. That's fixed for auditing in [`817e8f1`](https://github.com/bishtashish708/compact-diff/commit/817e8f1).
+- **Steered:** 5 new runs, one per session. Each passed compact-diff's exact steering note as `/compact <note>`, the same channel PreCompact stdout feeds. This cost $0.45 at API prices on Haiku 4.5.
+- Item lists were identical across arms. Labels were blind, with the same rubric, from a different annotator subagent than the unsteered arm.
+
+Share of real items **not fully kept**:
+
+| Kind | Unsteered (2 runs × 5) | Steered (1 run × 5) |
+| :- | -: | -: |
+| **User instructions** | 47% (n=68) | **18%** (n=34) |
+| Unresolved errors | 80% (n=10) | 20% (n=5) |
+| Files edited | 13% (n=144) | **38%** (n=72) |
+| **All kinds** | 26% (n=226) | 30% (n=113) |
+
+Item by item:
+
+- **Recovered:** of the 21 items lost in *both* unsteered runs, the steered run kept **9**: 7 instructions and 2 errors.
+- **Regressed:** of the 75 items kept in both unsteered runs, the steered run lost 17. **16 of those were files from one session**, whose steered summary came out about half the length of its unsteered summaries (12k vs 20–23k characters). It kept the rules and dropped the file list.
+- **By session:** steering lowered the not-fully-kept share in 3 sessions, tied in 1, and raised it in 1 (that same session).
+
+Reading: **steering shifts what survives toward the things it names first** (rules, then tasks and errors). In one of five sessions it cost the file list. Rules are the costly thing to lose, while files are cheap to restore and compact-diff re-injects them anyway, so steering stays **on by default**. Two changes follow:
+
+- **Already true.** The steering note lists rules first, then tasks and errors, then files.
+- **Roadmap.** Drop the file list from the steering note when it's long, and rely on re-injection for files.
+
+Caveats: 5 sessions and one steered run each, on Haiku, with a different annotator per arm. Steering went through `/compact <note>` rather than the hook. This is a direction, not a measurement of effect size.
 
 ## 5. Hook behaviour we observed (Claude Code 2.1.252)
 
@@ -105,4 +138,5 @@ The plan was to compact each fork once with the PreCompact steering note and onc
 - One machine, one developer, 12 compactions. 10 were manual and run on Haiku, and the 2 historical ones are from a single session.
 - LLM annotators, one per packet, with no human adjudication. The rubric needed four clarifications during labelling (listed in the rubric).
 - Item text comes from compact-diff's own extractor, so state the extractor never saw (git branch, env, URLs) isn't measured at all.
+- The v0.2 rule filter was designed on the labelled items (in-sample).
 - The file-stem matching fix (`test_cli` counting as a mention of `test_cli.py`) was found while reading the first labelled packets, then evaluated on all 12. That is a mild leak, and it affects files only.

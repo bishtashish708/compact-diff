@@ -181,15 +181,16 @@ claude plugin validate . --strict
 ## Demo plan
 
 1. **30-second GIF.** Done: [`launch/demo/`](launch/demo/), a replay of the real hook code on the synthetic session. Still to do: a real screen capture of a Claude Code session.
-2. **"How much does compaction drop?" post.** Drafted in [`launch/draft-how-much-does-compaction-drop.md`](launch/draft-how-much-does-compaction-drop.md). Still to do: the steering on/off comparison, and aggregates from a few volunteers' `scan` runs.
+2. **"How much does compaction drop?" post.** Drafted in [`launch/draft-how-much-does-compaction-drop.md`](launch/draft-how-much-does-compaction-drop.md). Still to do: aggregates from a few volunteers' `scan` runs.
 3. Reply on #89831 and #29890 with the report screenshot and the install line.
 
 ## Roadmap
 
 - [x] **Evidence pass v0.1.** 12 compactions, 329 items, precision/recall per kind, threshold sweep ([EVALUATION.md](launch/EVALUATION.md)).
 - [ ] Human labelling pass with inter-annotator agreement, and more compactions from more people.
-- [ ] Steering experiment: does the PreCompact note reduce loss? (5 sessions × steered/unsteered)
-- [ ] Better instruction extraction: skip spec prose and background text in long prompts (82% precision today).
+- [x] Steering experiment v0.1: rules not fully kept fell from 47% to 18%, but one session lost its file list ([EVALUATION.md §4](launch/EVALUATION.md)).
+- [ ] Slimmer steering note: leave long file lists to re-injection.
+- [x] Better instruction extraction: filter spec prose, quoted text and narrative (82% → 89% precision, in-sample).
 - [ ] Optional semantic matcher, with a `type: "prompt"` hook or a local embedding, behind a flag.
 - [ ] Track more state: git branch and uncommitted files, running background tasks, env and config changes, URLs and IDs the user gave.
 - [ ] Re-injection budget from `userConfig`, plus per-kind on/off switches.

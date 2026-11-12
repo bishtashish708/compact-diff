@@ -5,7 +5,7 @@ Before posting: re-check the numbers, add the demo GIF, decide on venue (blog / 
 
 # How much does Claude Code compaction drop?
 
-*Draft. 12 real compactions, 329 labelled pieces of working state, one surprise about hook ordering.*
+*Draft. 12 real compactions, 329 labelled pieces of working state, a steering experiment, and one surprise about hook ordering.*
 
 When a Claude Code session fills its context window, `/compact` (or auto-compaction) replaces the conversation with a summary. The summary is usually good. When it isn't, nothing tells you. Claude just stops following the rule you set an hour ago, or forgets the test that was still failing.
 
@@ -62,6 +62,21 @@ Compared with the labelled numbers, the tool overstates instruction loss, as exp
 
 </details>
 
+## Can you ask the summary to keep things?
+
+Claude Code lets a `PreCompact` hook add instructions to the summariser. compact-diff uses this to list the rules, open tasks and errors it found, and asks for them to be carried forward. I tested it on the same five sessions: two unsteered compactions each, against one compaction with compact-diff's note.
+
+| | Unsteered | Steered |
+| :- | -: | -: |
+| **User rules not fully kept** | 47% | **18%** |
+| Unresolved errors not fully kept | 80% | 20% (n=5, take it lightly) |
+| Edited files not fully kept | 13% | **38%** |
+| Everything | 26% | 30% |
+
+Of the items lost in *both* unsteered runs, the steered run recovered 43%, almost all of them rules. But it isn't free. In one session, the steered summary came out half the usual length, kept the rules and dropped 16 files from its file list. **Steering moves what survives toward what you name, not how much survives.** For rules that's a good trade. Files are the cheapest thing to restore, and compact-diff re-injects them anyway.
+
+Small sample: 5 sessions, Haiku summaries, and LLM labels. Treat this as a direction, not an effect size.
+
 ## The surprise: compaction hooks don't fire in the order you'd think
 
 Claude Code has three hook points around compaction:
@@ -94,7 +109,7 @@ It's local only: no network calls, no model calls, stdlib Python.
 ## What's next
 
 - A human labelling pass, and an inter-annotator agreement check.
-- **Does asking the summariser to keep things work?** compact-diff's PreCompact note tries to. That comparison was planned for this post, but the fork-transcript issue meant both arms ran unsteered. It's the next experiment.
+- A larger steering experiment (more sessions, the bigger models people actually use), and a slimmer steering note that leaves files to re-injection.
 - Semantic matching for reworded rules.
 - If you run `scan` on your own history, I'd love the aggregate table, numbers only.
 
