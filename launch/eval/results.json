@@ -1,0 +1,306 @@
+{
+ "compactions": 12,
+ "items_labelled": 364,
+ "extraction_precision": {
+  "decision": [
+   11,
+   20
+  ],
+  "error": [
+   17,
+   17
+  ],
+  "file": [
+   179,
+   179
+  ],
+  "instruction": [
+   120,
+   146
+  ],
+  "todo": [
+   2,
+   2
+  ]
+ },
+ "default": {
+  "n": 329,
+  "accuracy": 0.7477203647416414,
+  "macro_f1": 0.6021326305924112,
+  "per_class": {
+   "kept": {
+    "precision": 0.9747474747474747,
+    "recall": 0.8075313807531381,
+    "support": 239
+   },
+   "partial": {
+    "precision": 0.3076923076923077,
+    "recall": 0.38095238095238093,
+    "support": 42
+   },
+   "dropped": {
+    "precision": 0.46835443037974683,
+    "recall": 0.7708333333333334,
+    "support": 48
+   }
+  },
+  "lost_precision": 0.648854961832061,
+  "lost_recall": 0.9444444444444444,
+  "cm": {
+   "dropped->dropped": 37,
+   "dropped->kept": 1,
+   "dropped->partial": 10,
+   "kept->dropped": 20,
+   "kept->kept": 193,
+   "kept->partial": 26,
+   "partial->dropped": 22,
+   "partial->kept": 4,
+   "partial->partial": 16
+  }
+ },
+ "loco_accuracy": 0.7112462006079028,
+ "loco_picks": [
+  [
+   [
+    0.7,
+    0.2
+   ],
+   8
+  ],
+  [
+   [
+    0.7,
+    0.1
+   ],
+   1
+  ],
+  [
+   [
+    0.5,
+    0.1
+   ],
+   1
+  ]
+ ],
+ "tuned_all": {
+  "thresholds": [
+   0.7,
+   0.2
+  ],
+  "n": 329,
+  "accuracy": 0.7416413373860182,
+  "macro_f1": 0.614250787199588,
+  "per_class": {
+   "kept": {
+    "precision": 0.9747474747474747,
+    "recall": 0.8075313807531381,
+    "support": 239
+   },
+   "partial": {
+    "precision": 0.2808988764044944,
+    "recall": 0.5952380952380952,
+    "support": 42
+   },
+   "dropped": {
+    "precision": 0.6190476190476191,
+    "recall": 0.5416666666666666,
+    "support": 48
+   }
+  },
+  "lost_precision": 0.648854961832061,
+  "lost_recall": 0.9444444444444444,
+  "cm": {
+   "dropped->dropped": 26,
+   "dropped->kept": 1,
+   "dropped->partial": 21,
+   "kept->dropped": 3,
+   "kept->kept": 193,
+   "kept->partial": 43,
+   "partial->dropped": 13,
+   "partial->kept": 4,
+   "partial->partial": 25
+  }
+ },
+ "per_kind_default": {
+  "decision": {
+   "n": 11,
+   "accuracy": 0.36363636363636365,
+   "macro_f1": 0.36904761904761907,
+   "per_class": {
+    "kept": {
+     "precision": 1.0,
+     "recall": 0.4,
+     "support": 5
+    },
+    "partial": {
+     "precision": 0.3333333333333333,
+     "recall": 0.2,
+     "support": 5
+    },
+    "dropped": {
+     "precision": 0.16666666666666666,
+     "recall": 1.0,
+     "support": 1
+    }
+   },
+   "lost_precision": 0.6666666666666666,
+   "lost_recall": 1.0,
+   "cm": {
+    "dropped->dropped": 1,
+    "kept->dropped": 1,
+    "kept->kept": 2,
+    "kept->partial": 2,
+    "partial->dropped": 4,
+    "partial->partial": 1
+   }
+  },
+  "error": {
+   "n": 17,
+   "accuracy": 0.29411764705882354,
+   "macro_f1": 0.28084415584415584,
+   "per_class": {
+    "kept": {
+     "precision": 0.5,
+     "recall": 0.2,
+     "support": 5
+    },
+    "partial": {
+     "precision": 0.125,
+     "recall": 0.3333333333333333,
+     "support": 3
+    },
+    "dropped": {
+     "precision": 0.42857142857142855,
+     "recall": 0.3333333333333333,
+     "support": 9
+    }
+   },
+   "lost_precision": 0.7333333333333333,
+   "lost_recall": 0.9166666666666666,
+   "cm": {
+    "dropped->dropped": 3,
+    "dropped->partial": 6,
+    "kept->dropped": 3,
+    "kept->kept": 1,
+    "kept->partial": 1,
+    "partial->dropped": 1,
+    "partial->kept": 1,
+    "partial->partial": 1
+   }
+  },
+  "file": {
+   "n": 179,
+   "accuracy": 0.9776536312849162,
+   "macro_f1": 0.6389159363842908,
+   "per_class": {
+    "kept": {
+     "precision": 0.9874213836477987,
+     "recall": 1.0,
+     "support": 157
+    },
+    "partial": {
+     "precision": null,
+     "recall": 0.0,
+     "support": 3
+    },
+    "dropped": {
+     "precision": 0.9,
+     "recall": 0.9473684210526315,
+     "support": 19
+    }
+   },
+   "lost_precision": 1.0,
+   "lost_recall": 0.9090909090909091,
+   "cm": {
+    "dropped->dropped": 18,
+    "dropped->kept": 1,
+    "kept->kept": 157,
+    "partial->dropped": 2,
+    "partial->kept": 1
+   }
+  },
+  "instruction": {
+   "n": 120,
+   "accuracy": 0.5,
+   "macro_f1": 0.484123032666722,
+   "per_class": {
+    "kept": {
+     "precision": 0.9393939393939394,
+     "recall": 0.44285714285714284,
+     "support": 70
+    },
+    "partial": {
+     "precision": 0.34146341463414637,
+     "recall": 0.45161290322580644,
+     "support": 31
+    },
+    "dropped": {
+     "precision": 0.32608695652173914,
+     "recall": 0.7894736842105263,
+     "support": 19
+    }
+   },
+   "lost_precision": 0.5517241379310345,
+   "lost_recall": 0.96,
+   "cm": {
+    "dropped->dropped": 15,
+    "dropped->partial": 4,
+    "kept->dropped": 16,
+    "kept->kept": 31,
+    "kept->partial": 23,
+    "partial->dropped": 15,
+    "partial->kept": 2,
+    "partial->partial": 14
+   }
+  },
+  "todo": {
+   "n": 2,
+   "accuracy": 1.0,
+   "macro_f1": 0.3333333333333333,
+   "per_class": {
+    "kept": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "support": 2
+    },
+    "partial": {
+     "precision": null,
+     "recall": null,
+     "support": 0
+    },
+    "dropped": {
+     "precision": null,
+     "recall": null,
+     "support": 0
+    }
+   },
+   "lost_precision": null,
+   "lost_recall": null,
+   "cm": {
+    "kept->kept": 2
+   }
+  }
+ },
+ "historical_unsteered_gold_by_kind": {
+  "decision": {
+   "partial": 5,
+   "kept": 3,
+   "dropped": 1
+  },
+  "error": {
+   "dropped": 2,
+   "kept": 3,
+   "partial": 2
+  },
+  "file": {
+   "kept": 32,
+   "partial": 1,
+   "dropped": 2
+  },
+  "instruction": {
+   "kept": 34,
+   "dropped": 12,
+   "partial": 6
+  }
+ }
+}

@@ -94,6 +94,18 @@ Matching is lexical and deterministic. Files and errors count as kept when the s
 
 This is a heuristic. It will sometimes call a paraphrase *partial*, and it can miss a rule phrased in an unusual way. The re-injection is built to fail safe: a false *dropped* costs a few hundred tokens of duplicate context, while a missed rule costs much more.
 
+### How accurate is it?
+
+Measured on 12 real compactions and 329 labelled items ([full evaluation](launch/EVALUATION.md); labels by blind LLM annotators, not people yet):
+
+- It catches **94% of the items a summary lost**.
+- When it says **kept**, it is right **97.5%** of the time.
+- It is **too pessimistic about reworded rules**: 55% precision on "lost instruction". Files are near-perfect (98% accuracy).
+- Partial vs. dropped is unreliable, so read them as one "check this" bucket.
+- Threshold tuning didn't improve held-out accuracy, so the defaults stand.
+
+In the same data, compaction left **27%** of tracked working state not fully kept, including **42% of user rules** and **71% of unresolved errors**.
+
 ## Install
 
 From GitHub, inside Claude Code:
@@ -129,15 +141,18 @@ python3 scripts/cdiff.py audit ~/.claude/projects/<project>/<session>.jsonl
 python3 scripts/cdiff.py scan ~/.claude/projects
 ```
 
-`scan` adds up every compaction in your history:
+`scan` adds up every compaction in your history. These are the tool's own estimates; it overstates instruction loss (see accuracy above):
 
 ```
 Kind                  Tracked    Kept  Partial  Dropped   Lost %
-User instructions          21      13        7        1      21%
-Unresolved errors           5       2        0        3      60%
-Files edited               24      20        0        4      17%
-Decisions                   7       1        2        4      71%
+User instructions         148      39       43       66      59%
+Open tasks                  2       2        0        0       0%
+Unresolved errors          17       2        8        7      65%
+Files edited              180     160        0       20      11%
+Decisions                  20       2        7       11      72%
 ```
+
+**Forked sessions:** with `--fork-session`, Claude Code hasn't written the fork's transcript when PreCompact fires. compact-diff recovers the snapshot afterwards, so the report and re-injection still work, but it can't steer that summary.
 
 ## Configuration
 
@@ -165,13 +180,16 @@ claude plugin validate . --strict
 
 ## Demo plan
 
-1. **30-second GIF.** In a scratch repo, give Claude three rules, make some edits, leave a test failing, then run `/compact`. Show the one-line verdict, then `/compact-diff:report`. Then ask "what rules am I under?" with and without the plugin.
-2. **"How much does compaction drop?" post.** Run `cdiff.py scan` over a few volunteers' histories (aggregate numbers only) and publish the per-kind loss rates. Run it with steering on and off to show how much the PreCompact note alone helps.
+1. **30-second GIF.** Done: [`launch/demo/`](launch/demo/), a replay of the real hook code on the synthetic session. Still to do: a real screen capture of a Claude Code session.
+2. **"How much does compaction drop?" post.** Drafted in [`launch/draft-how-much-does-compaction-drop.md`](launch/draft-how-much-does-compaction-drop.md). Still to do: the steering on/off comparison, and aggregates from a few volunteers' `scan` runs.
 3. Reply on #89831 and #29890 with the report screenshot and the install line.
 
 ## Roadmap
 
-- [ ] **Evidence pass.** Hand-label 50 real compactions and publish precision/recall for each item kind. Tune the thresholds.
+- [x] **Evidence pass v0.1.** 12 compactions, 329 items, precision/recall per kind, threshold sweep ([EVALUATION.md](launch/EVALUATION.md)).
+- [ ] Human labelling pass with inter-annotator agreement, and more compactions from more people.
+- [ ] Steering experiment: does the PreCompact note reduce loss? (5 sessions × steered/unsteered)
+- [ ] Better instruction extraction: skip spec prose and background text in long prompts (82% precision today).
 - [ ] Optional semantic matcher, with a `type: "prompt"` hook or a local embedding, behind a flag.
 - [ ] Track more state: git branch and uncommitted files, running background tasks, env and config changes, URLs and IDs the user gave.
 - [ ] Re-injection budget from `userConfig`, plus per-kind on/off switches.
