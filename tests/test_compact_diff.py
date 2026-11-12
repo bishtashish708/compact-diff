@@ -78,6 +78,29 @@ class ExtractTests(unittest.TestCase):
         self.assertTrue(any("/api/v1/login" in t for t in got))
         self.assertFalse(any("model" in t for t in got))  # meta command ignored
 
+    def test_rule_filter_rejects_spec_prose(self):
+        rules = [
+            "Never push to main directly; open a PR instead.",
+            "Use pnpm, not npm.",
+            "Quick look at the logs, please (don't restart the worker).",
+            "Search page (v2: design only, do not ship yet)",
+            "Keep the legacy importer behind a flag for now.",
+            "Benchmarked both drivers, but always pin the faster one.",  # past tense, strong rule word
+        ]
+        prose = [
+            '"Reply with valid YAML only, no prose"',
+            "“Your parcel could not be delivered today”",
+            "Pricing notes (only for reference)",
+            "Glossary (important terms)",
+            "Tried the cache first, but it was not faster and only helped cold starts.",
+            "Measured the queue: it does not drain under load.",
+            "The weather was nice today.",
+        ]
+        for s in rules:
+            self.assertTrue(extract.looks_like_rule(s), s)
+        for s in prose:
+            self.assertFalse(extract.looks_like_rule(s), s)
+
     def test_files_relative_with_counts(self):
         files = {i.text: i for i in self.items if i.kind == "file"}
         self.assertEqual(set(files), {"src/auth.ts", "src/login.tsx", "src/middleware/session.ts", "tests/auth.test.ts"})

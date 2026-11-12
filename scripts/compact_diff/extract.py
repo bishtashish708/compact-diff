@@ -114,6 +114,47 @@ def _dedupe(items: Iterable[Item]) -> list[Item]:
     return out
 
 
+# Unambiguous rule words. Weaker cues ("not", "only", "keep") also appear in narrative
+# and spec prose, so the filters below only drop a sentence when none of these is present.
+_STRONG_RULE_RE = re.compile(
+    r"\b(don'?t|do not|never|always|must|mustn'?t|make sure|ensure|avoid|prefer|instead of|rather than)\b", re.I
+)
+_PAREN_RE = re.compile(r"\([^()]*\)")
+_TERMINAL_RE = re.compile(r"[.!?][\"'”’)\]]*$")
+_QUOTE_START_RE = re.compile(r"""^\s*["“'‘]""")
+
+
+def looks_like_rule(sentence: str) -> bool:
+    """Heuristic: is this sentence a rule the user set, rather than spec prose or narrative?
+
+    Long prompts often paste specs, prompt templates and background notes. Measured on
+    labelled compactions these filters raise instruction precision from 82% to 89%
+    (see launch/EVALUATION.md). Rejected:
+
+    * quoted text: UI copy or prompt templates (``"Reply with valid YAML only"``)
+    * headings: short, no sentence-ending punctuation, and the rule word only appears
+      inside parentheses (``Pricing notes (only for reference)``)
+    * past-tense narrative: ``Tried the cache first, it was not faster.``
+    """
+    if not _INSTRUCTION_RE.search(sentence):
+        return False
+    strong = bool(_STRONG_RULE_RE.search(sentence))
+    if _QUOTE_START_RE.match(sentence):
+        return False
+    stripped = sentence.rstrip()
+    if (
+        not strong
+        and len(stripped) < 120
+        and not _TERMINAL_RE.search(stripped)
+        and not _INSTRUCTION_RE.search(_PAREN_RE.sub(" ", stripped))
+    ):
+        return False
+    first = re.match(r"^([A-Z][a-z]+)\s", sentence)
+    if not strong and first and first.group(1).endswith("ed") and first.group(1) not in ("Need", "Used"):
+        return False
+    return True
+
+
 def extract_instructions(entries: list[dict[str, Any]]) -> list[Item]:
     items: list[Item] = []
     for entry in entries:
@@ -123,7 +164,7 @@ def extract_instructions(entries: list[dict[str, Any]]) -> list[Item]:
         for s in sentences(text):
             if len(s) < 12 or len(s) > 500:
                 continue
-            if _INSTRUCTION_RE.search(s):
+            if looks_like_rule(s):
                 items.append(Item("instruction", _clip(s), PRIORITY["instruction"]))
     return _dedupe(items)[-MAX_INSTRUCTIONS:]
 
