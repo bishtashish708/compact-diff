@@ -108,12 +108,20 @@ In the same data, compaction left **27%** of tracked working state not fully kep
 
 ## Install
 
-From GitHub, inside Claude Code:
+This repository is also its own plugin marketplace (`.claude-plugin/marketplace.json`), so you can install straight from GitHub. Inside Claude Code:
 
 ```
 /plugin marketplace add bishtashish708/compact-diff
 /plugin install compact-diff@compact-diff
 ```
+
+Then restart Claude Code. To pick up new releases later:
+
+```bash
+claude plugin marketplace update compact-diff && claude plugin update compact-diff@compact-diff
+```
+
+To remove it, run `claude plugin uninstall compact-diff@compact-diff`.
 
 Or try it for one session without installing anything:
 
@@ -125,7 +133,7 @@ git clone https://github.com/bishtashish708/compact-diff
 claude --plugin-dir ./compact-diff
 ```
 
-Requires `python3` (3.9+) on `PATH` and a Claude Code version with the `PostCompact` hook. Tested on macOS with Claude Code 2.1.252. Linux should work. Windows is untested, and the guard hooks need a POSIX shell.
+Requires `python3` (3.9+) on `PATH` and a Claude Code version with the `PostCompact` hook. Tested on macOS with Claude Code 2.1.252 and 2.1.322. Linux should work. Windows is untested, and the guard hooks need a POSIX shell.
 
 ## Use
 
