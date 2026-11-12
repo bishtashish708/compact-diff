@@ -2,6 +2,9 @@
 
 **See what `/compact` dropped, and put the critical pieces back.**
 
+![compact-diff demo: three rules, /compact, the one-line verdict, then /compact-diff:report](launch/demo/demo.gif)
+<sub>Replay of the real hook code on the synthetic demo session, not a screen capture. See [launch/demo](launch/demo/).</sub>
+
 compact-diff is a Claude Code plugin that audits every compaction, manual or automatic. Before compaction it records the session's working state: the rules you gave, open tasks, unresolved errors, files edited and decisions made. After compaction it checks which of those the summary lost. You get a one-line verdict and a full report, and only the **missing** items are re-injected into Claude's context.
 
 ```

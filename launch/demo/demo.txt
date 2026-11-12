@@ -1,0 +1,100 @@
+replay of the real compact-diff hook code on a synthetic session · not a screen capture
+╭─ claude ~/webapp   plugin: compact-diff
+
+> Refactor our auth to OAuth2. Never push to main directly; open a PR instead. Use pnpm, not npm. Don't touch anything in the legacy/ folder, it is frozen for the audit.
+⏺ Going with PKCE flow instead of implicit grant, since this is a public client.
+⏺ Write src/auth.ts  ·  Edit src/login.tsx  ·  Edit src/middleware/session.ts
+⏺ Bash pnpm lint  ✗ unused var → fixed → ✓
+
+> Also, keep the old /api/v1/login endpoint working until the mobile app ships 4.2; it must return a deprecation header.
+⏺ Write tests/auth.test.ts  ·  Bash pnpm test tests/auth.test.ts
+  ⎿ FAIL  TypeError: Cannot read properties of undefined (reading 'refreshToken')
+
+> /compact
+  ⎿ PreCompact [compact-diff]: snapshot of 12 working-state items saved
+  ⎿ Compacted (182k → 9k tokens)
+
+> ok continue
+  ⎿ compact-diff: summary kept 4/12 tracked items; 7 dropped, 1 partial (3 user instructions, 2 files edited, 1 open tasks, 1 unresolved errors, 1 decisions).
+    Report: ~/.local/state/compact-diff/sessions/demo-session/report-<time>.md
+  ⎿ UserPromptSubmit [compact-diff]: re-injected 7 dropped items as context
+
+> /compact-diff:report
+  # compact-diff report
+  
+  - Trigger: `manual`  
+  - When: 2026-11-12 07:03:12  
+  - Project: `/home/dev/webapp`  
+  - Summary steered by PreCompact hook: no  
+  - Re-injected after compaction: 7 item(s)
+  
+  **Kept 4 · Partial 1 · Dropped 7** of 12 tracked items.
+  
+  | Kind | Kept | Partial | Dropped |
+  | :- | -: | -: | -: |
+  | User instructions | 1 | 0 | 3 |
+  | Open tasks | 1 | 0 | 1 |
+  | Unresolved errors | 0 | 0 | 1 |
+  | Files edited | 2 | 0 | 2 |
+  | Decisions | 0 | 1 | 0 |
+  
+  ## Dropped
+  
+  **User instructions**
+  
+  - Never push to main directly; open a PR instead.
+  - Don't touch anything in the legacy/ folder, it is frozen for the audit.
+  - Also, keep the old /api/v1/login endpoint working until the mobile app ships 4.2; it must return a deprecation header.
+  
+  **Open tasks**
+  
+  - Add refresh-token rotation to the API gateway — _pending_
+  
+  **Unresolved errors**
+  
+  - TypeError: Cannot read properties of undefined (reading 'refreshToken') — _Bash: pnpm test tests/auth.test.ts_
+  
+  **Files edited**
+  
+  - src/middleware/session.ts — _1 edit(s)_
+  - tests/auth.test.ts — _1 edit(s)_
+  
+  
+  ## Partially kept
+  
+  **Decisions**
+  
+  - Going with PKCE flow instead of implicit grant, since this is a public client.
+    - closest in summary (62%): “Key Technical Concepts: OAuth2 authorization code flow with PKCE. Going with PKCE flow instead of implicit grant.”
+  
+  
+  ## Kept
+  
+  **User instructions**
+  
+  - Use pnpm, not npm.
+  
+  **Open tasks**
+  
+  - Update the README auth section — _pending_
+  
+  **Files edited**
+  
+  - src/auth.ts — _2 edit(s)_
+  - src/login.tsx — _1 edit(s)_
+  
+  
+  ## Re-injected context
+  
+  compact-diff: the items below were part of this session's working state before the last compaction, and the compaction summary does not carry them (or carries them only in part). They are restored here verbatim from the transcript.
+  User instructions given earlier in this session (still in force unless the user changed them later):
+  - Never push to main directly; open a PR instead.
+  - Don't touch anything in the legacy/ folder, it is frozen for the audit.
+  - Also, keep the old /api/v1/login endpoint working until the mobile app ships 4.2; it must return a deprecation header.
+  Tasks that were still open:
+  - Add refresh-token rotation to the API gateway
+  Errors that had not been resolved:
+  - TypeError: Cannot read properties of undefined (reading 'refreshToken') (Bash: pnpm test tests/auth.test.ts)
+  Files edited before compaction:
+  - src/middleware/session.ts (1 edit(s))
+  - tests/auth.test.ts (1 edit(s))
