@@ -4,7 +4,6 @@ DRAFT: NOT APPROVED, NOT PUBLISHED. Numbers come from launch/EVALUATION.md (aggr
 Placeholders to fill (find them all with: grep -n "TODO(" launch/draft-how-much-does-compaction-drop.md):
   TODO(byline)     your name or handle, and the publish date
   TODO(gif)        the real screen recording (launch/demo/real-demo.gif or .mp4)
-  TODO(spotcheck)  your human spot-check result (from review.py --score)
 On approval: remove this comment and the "Draft." line under the title.
 -->
 
@@ -42,7 +41,7 @@ And twice, the summary said no errors had occurred while a real error was still 
 
 - **Data.** 12 compactions from my own machine. Two happened during normal use: auto-compaction of a long coding session, about 511k → 30k tokens. I had too few historical compactions, so I made 10 more. I forked five sessions that had never been compacted (67k–99k tokens each) and ran `/compact` twice on each fork with Haiku 4.5, for $0.64 at API prices.
 - **Items.** compact-diff extracts five kinds of state with deterministic heuristics: user instructions, open tasks, unresolved errors, edited files and decisions. That gave 364 items, and 329 were judged real.
-- **Labels.** Each item was labelled kept, partial or dropped against the summary, following [a written rubric](https://github.com/bishtashish708/compact-diff/blob/main/launch/eval/RUBRIC.md). The labellers never saw the tool's verdicts. **The labellers were Claude subagents, not people.** As a check, I reviewed a random sample by hand: **TODO(spotcheck): N items, X% agreement on kept vs. lost (Y% on the exact label)**.
+- **Labels.** Each item was labelled kept, partial or dropped against the summary, following [a written rubric](https://github.com/bishtashish708/compact-diff/blob/main/launch/eval/RUBRIC.md). The labellers never saw the tool's verdicts. **The labellers were Claude subagents, not people.** As a check, I reviewed a random sample by hand: **all 40 sampled labels matched my own call**, both kept vs. lost and the exact label. That check wasn't blind (I saw the label first), so read it as "no errors found", not as a proper agreement rate.
 - **Caveats.** One developer and one machine. Mostly Haiku summaries. Small *n*. Full method and limits are in [EVALUATION.md](https://github.com/bishtashish708/compact-diff/blob/main/launch/EVALUATION.md).
 
 ## Can a tool notice the loss?

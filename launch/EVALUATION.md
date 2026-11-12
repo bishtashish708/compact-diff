@@ -10,10 +10,24 @@ How often does Claude Code compaction lose working state? How well does compact-
 | Historical | 2 auto-compactions from one long coding session, which happened during normal use |
 | Created for this eval | 10 manual compactions. We forked 5 sessions that had never been compacted (67k–99k tokens of context each) with `claude --resume <id> --fork-session` and ran `/compact` twice per fork with Haiku 4.5, for $0.64 at API prices. 5 more steered runs, for $0.45, are used only in section 4. The original sessions were not touched. |
 | Items | compact-diff extracted 364 items. Annotators judged **329 of them real working state**; see Extraction precision below. |
-| Labels | Blind labels against a written rubric ([`eval/RUBRIC.md`](eval/RUBRIC.md)). Each packet held the summary plus the item list, never the tool's verdict. **The annotators were Claude subagents, not humans**, with one annotator per packet and no inter-annotator agreement measured. A human pass is on the roadmap. |
+| Labels | Blind labels against a written rubric ([`eval/RUBRIC.md`](eval/RUBRIC.md)). Each packet held the summary plus the item list, never the tool's verdict. **The annotators were Claude subagents, not humans**, with one annotator per packet. A human spot-check of 40 of these labels agreed with all 40; see [Human spot-check](#human-spot-check). |
 | Goal vs. reality | We aimed for 30–50 compactions. The machine had only 2, so the other 10 were created as described above. |
 
 Packets were built with [`eval/make_packets.py`](eval/make_packets.py) and scored with [`eval/score.py`](eval/score.py). Aggregate output is in [`eval/results.json`](eval/results.json).
+
+### Human spot-check
+
+The author reviewed a random sample of **40 labelled items**, stratified by kind: 10 instructions, 9 decisions, 9 files, 9 errors and 3 tasks. The LLM labels in the sample were 30 kept, 4 partial and 6 dropped, and 4 items were marked not real.
+
+| | Agreement |
+| :- | -: |
+| Exact label (kept / partial / dropped) | **40 / 40** |
+| Kept vs. lost | 40 / 40 |
+| Real item or not | 40 / 40 |
+
+- **Caveat: not blind.** The reviewer saw the LLM label before deciding, which favours agreement. Read this as "no label errors found in 40", not as an independent agreement rate.
+- 40 / 40 puts the exact-label agreement above about 91% (95% one-sided lower bound).
+- It's one reviewer, so there's still no inter-annotator agreement figure.
 
 ## 1. How much does compaction drop?
 
@@ -136,7 +150,7 @@ Caveats: 5 sessions and one steered run each, on Haiku, with a different annotat
 ## Limitations
 
 - One machine, one developer, 12 compactions. 10 were manual and run on Haiku, and the 2 historical ones are from a single session.
-- LLM annotators, one per packet, with no human adjudication. The rubric needed four clarifications during labelling (listed in the rubric).
+- LLM annotators, one per packet. The only human check is a non-blind 40-item spot-check (all agreed); there's no independent human labelling. The rubric needed four clarifications during labelling (listed in the rubric).
 - Item text comes from compact-diff's own extractor, so state the extractor never saw (git branch, env, URLs) isn't measured at all.
 - The v0.2 rule filter was designed on the labelled items (in-sample).
 - The file-stem matching fix (`test_cli` counting as a mention of `test_cli.py`) was found while reading the first labelled packets, then evaluated on all 12. That is a mild leak, and it affects files only.
