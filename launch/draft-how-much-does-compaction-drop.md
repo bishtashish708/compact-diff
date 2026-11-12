@@ -3,7 +3,6 @@ DRAFT: NOT APPROVED, NOT PUBLISHED. Numbers come from launch/EVALUATION.md (aggr
 
 Placeholders to fill (find them all with: grep -n "TODO(" launch/draft-how-much-does-compaction-drop.md):
   TODO(byline)     your name or handle, and the publish date
-  TODO(gif)        the real screen recording (launch/demo/real-demo.gif or .mp4)
 On approval: remove this comment and the "Draft." line under the title.
 -->
 
@@ -13,7 +12,9 @@ On approval: remove this comment and the "Draft." line under the title.
 
 *By **TODO(byline): name or handle** · TODO(byline): date*
 
-> **TODO(gif):** embed the real recording here, e.g. `![compact-diff in action](https://github.com/bishtashish708/compact-diff/raw/main/launch/demo/real-demo.gif)`. It should show three rules, `/compact`, the verdict line and `/compact-diff:report`. Until then, the replay GIF is at `launch/demo/demo.gif`.
+![compact-diff in a real Claude Code session](https://github.com/bishtashish708/compact-diff/raw/main/launch/demo/real-demo.gif)
+
+*A real session (Claude Code 2.1.322, Haiku), with waits trimmed: three rules, some work, `/compact`, the verdict line, `/compact-diff:report`. In this short run the summary kept 8 of 9 items.*
 
 When a Claude Code session fills its context window, `/compact` (or auto-compaction) replaces the conversation with a summary. The summary is usually good. When it isn't, nothing tells you. Claude just stops following the rule you set an hour ago, or forgets the test that was still failing.
 

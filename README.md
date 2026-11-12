@@ -2,8 +2,8 @@
 
 **See what `/compact` dropped, and put the critical pieces back.**
 
-![compact-diff demo: three rules, /compact, the one-line verdict, then /compact-diff:report](launch/demo/demo.gif)
-<sub>Replay of the real hook code on the synthetic demo session, not a screen capture. See [launch/demo](launch/demo/).</sub>
+![compact-diff in a real Claude Code session: three rules, some work, /compact, the one-line verdict, then /compact-diff:report](launch/demo/real-demo.gif)
+<sub>A real Claude Code session (v2.1.322, Haiku), recorded headless with waits trimmed. In this run the summary kept 8 of 9 tracked items, with one decision only partly kept. For a session where things do get dropped, see the [replay on a synthetic session](launch/demo/demo.gif). Details in [launch/demo](launch/demo/).</sub>
 
 compact-diff is a Claude Code plugin that audits every compaction, manual or automatic. Before compaction it records the session's working state: the rules you gave, open tasks, unresolved errors, files edited and decisions made. After compaction it checks which of those the summary lost. You get a one-line verdict and a full report, and only the **missing** items are re-injected into Claude's context.
 
@@ -186,7 +186,7 @@ claude plugin validate . --strict
 
 ## Demo plan
 
-1. **30-second GIF.** Done: [`launch/demo/`](launch/demo/), a replay of the real hook code on the synthetic session. Still to do: a real screen capture of a Claude Code session.
+1. **30-second GIF.** Done: [`launch/demo/`](launch/demo/), a replay of the real hook code on the synthetic session. A real Claude Code session is in [`launch/demo/real-demo.gif`](launch/demo/real-demo.gif).
 2. **"How much does compaction drop?" post.** Drafted in [`launch/draft-how-much-does-compaction-drop.md`](launch/draft-how-much-does-compaction-drop.md). Still to do: aggregates from a few volunteers' `scan` runs.
 3. Reply on #89831 and #29890 with the report screenshot and the install line.
 
