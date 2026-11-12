@@ -1,11 +1,20 @@
 <!--
-DRAFT. Not published anywhere. Numbers come from launch/EVALUATION.md (aggregates only).
-Before posting: re-check the numbers, add the demo GIF, decide on venue (blog / HN / r/ClaudeAI / issue replies).
+DRAFT: NOT APPROVED, NOT PUBLISHED. Numbers come from launch/EVALUATION.md (aggregates only).
+
+Placeholders to fill (find them all with: grep -n "TODO(" launch/draft-how-much-does-compaction-drop.md):
+  TODO(byline)     your name or handle, and the publish date
+  TODO(gif)        the real screen recording (launch/demo/real-demo.gif or .mp4)
+  TODO(spotcheck)  your human spot-check result (from review.py --score)
+On approval: remove this comment and the "Draft." line under the title.
 -->
 
 # How much does Claude Code compaction drop?
 
 *Draft. 12 real compactions, 329 labelled pieces of working state, a steering experiment, and one surprise about hook ordering.*
+
+*By **TODO(byline): name or handle** · TODO(byline): date*
+
+> **TODO(gif):** embed the real recording here, e.g. `![compact-diff in action](https://github.com/bishtashish708/compact-diff/raw/main/launch/demo/real-demo.gif)`. It should show three rules, `/compact`, the verdict line and `/compact-diff:report`. Until then, the replay GIF is at `launch/demo/demo.gif`.
 
 When a Claude Code session fills its context window, `/compact` (or auto-compaction) replaces the conversation with a summary. The summary is usually good. When it isn't, nothing tells you. Claude just stops following the rule you set an hour ago, or forgets the test that was still failing.
 
@@ -33,8 +42,8 @@ And twice, the summary said no errors had occurred while a real error was still 
 
 - **Data.** 12 compactions from my own machine. Two happened during normal use: auto-compaction of a long coding session, about 511k → 30k tokens. I had too few historical compactions, so I made 10 more. I forked five sessions that had never been compacted (67k–99k tokens each) and ran `/compact` twice on each fork with Haiku 4.5, for $0.64 at API prices.
 - **Items.** compact-diff extracts five kinds of state with deterministic heuristics: user instructions, open tasks, unresolved errors, edited files and decisions. That gave 364 items, and 329 were judged real.
-- **Labels.** Each item was labelled kept, partial or dropped against the summary, following [a written rubric](eval/RUBRIC.md). The labellers never saw the tool's verdicts. **The labellers were Claude subagents, not people**, so treat these as careful estimates, not ground truth. A human labelling pass is next.
-- **Caveats.** One developer and one machine. Mostly Haiku summaries. Small *n*. Full method and limits are in [EVALUATION.md](EVALUATION.md).
+- **Labels.** Each item was labelled kept, partial or dropped against the summary, following [a written rubric](https://github.com/bishtashish708/compact-diff/blob/main/launch/eval/RUBRIC.md). The labellers never saw the tool's verdicts. **The labellers were Claude subagents, not people.** As a check, I reviewed a random sample by hand: **TODO(spotcheck): N items, X% agreement on kept vs. lost (Y% on the exact label)**.
+- **Caveats.** One developer and one machine. Mostly Haiku summaries. Small *n*. Full method and limits are in [EVALUATION.md](https://github.com/bishtashish708/compact-diff/blob/main/launch/EVALUATION.md).
 
 ## Can a tool notice the loss?
 
@@ -98,9 +107,10 @@ One more trap: with `claude --resume <id> --fork-session`, **PreCompact sees an 
 /plugin install compact-diff@compact-diff
 ```
 
-After each compaction you get one line, `compact-diff: summary kept 9/14 tracked items; 4 dropped, 1 partial…`. `/compact-diff:report` shows the full diff. To see what past compactions dropped in your own history, without installing anything:
+After each compaction you get one line, `compact-diff: summary kept 9/14 tracked items; 4 dropped, 1 partial…`. `/compact-diff:report` shows the full diff. To see what past compactions dropped in your own history, without installing anything, run this from a clone of the repo:
 
 ```
+git clone https://github.com/bishtashish708/compact-diff && cd compact-diff
 python3 scripts/cdiff.py scan ~/.claude/projects
 ```
 
@@ -108,7 +118,7 @@ It's local only: no network calls, no model calls, stdlib Python.
 
 ## What's next
 
-- A human labelling pass, and an inter-annotator agreement check.
+- A full human labelling pass beyond the spot-check, with an inter-annotator agreement check.
 - A larger steering experiment (more sessions, the bigger models people actually use), and a slimmer steering note that leaves files to re-injection.
 - Semantic matching for reworded rules.
 - If you run `scan` on your own history, I'd love the aggregate table, numbers only.
