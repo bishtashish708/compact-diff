@@ -88,6 +88,18 @@ The summary kept "use pnpm, not npm" and the PKCE decision. It dropped the rule 
 | Files edited | `Edit`/`Write`/`MultiEdit`/`NotebookEdit` targets in the compacted window | dropped |
 | Decisions | Claude's own sentences like "going with X instead of Y" | dropped |
 
+**Across compactions.** Rules and open tasks are re-extracted from the whole transcript every time, so each compaction checks them again. Errors, files and decisions only come from the current window. When one of those is re-injected, it's recorded in a per-session ledger (`carried.json`, keyed by kind plus a hash of the text). The next snapshot includes it again, marked *carried from compaction N*, so a later summary that drops it is caught too. A carried item stops being carried when:
+
+- the summary keeps it;
+- fresh extraction finds the same item (it's deduped, and the fresh copy wins);
+- for an error, the same command later runs cleanly;
+- for a decision, a newer decision covers the same subject;
+- it has been carried 3 times.
+
+The report lists what stopped being carried, and why.
+
+**Reversed rules.** If you later reverse a rule ("use pnpm, not npm", then "actually, use npm after all"), the earlier rule is no longer tracked. This needs a reversal cue (a leading "actually", "after all", "no longer", "scratch that", "changed my mind", "ignore what I said", "disregard") plus at least half of the earlier rule's subject words. A quieter change of mind ("let's use npm") isn't detected, so the old rule can still be re-injected.
+
 ### How "kept" is decided
 
 Matching is lexical and deterministic. Files and errors count as kept when the summary names them (basename, exception class). Other items are scored by the share of their significant words found in the best three-sentence window of the summary: **kept ≥ 70%**, **partial ≥ 40%**, otherwise **dropped**. A negation guard stops "never deploy on Friday" from counting as kept when the summary only says "deploy on Friday".

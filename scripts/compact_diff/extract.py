@@ -62,6 +62,8 @@ class Item:
     priority: str = "normal"
     anchors: list[str] = field(default_factory=list)
     detail: str = ""
+    source: str = ""  # errors: the tool call key ("Bash:pnpm test"), used to spot a later clean re-run
+    carried_from: int = 0  # >0: carried forward from that compaction's re-injection (see carry.py)
 
     @property
     def id(self) -> str:
@@ -81,6 +83,8 @@ class Item:
             priority=d.get("priority", "normal"),
             anchors=list(d.get("anchors", [])),
             detail=d.get("detail", ""),
+            source=d.get("source", ""),
+            carried_from=int(d.get("carried_from") or 0),
         )
 
 
@@ -156,17 +160,47 @@ def looks_like_rule(sentence: str) -> bool:
 
 
 def extract_instructions(entries: list[dict[str, Any]]) -> list[Item]:
-    items: list[Item] = []
+    said: list[str] = []  # every sentence the user typed, in order
+    rules: list[tuple[int, Item]] = []
     for entry in entries:
         if not tx.is_human_prompt(entry):
             continue
         text = tx.strip_reminders(tx.message_text(entry))
         for s in sentences(text):
-            if len(s) < 12 or len(s) > 500:
-                continue
-            if looks_like_rule(s):
-                items.append(Item("instruction", _clip(s), PRIORITY["instruction"]))
-    return _dedupe(items)[-MAX_INSTRUCTIONS:]
+            said.append(s)
+            if 12 <= len(s) <= 500 and looks_like_rule(s):
+                rules.append((len(said) - 1, Item("instruction", _clip(s), PRIORITY["instruction"])))
+    kept = [it for pos, it in rules if not any(supersedes(later, it.text) for later in said[pos + 1 :])]
+    return _dedupe(kept)[-MAX_INSTRUCTIONS:]
+
+
+# A later sentence that reverses an earlier rule: it needs a reversal cue ("after all", "no longer",
+# a leading "actually", ...) and must share at least half of the earlier rule's subject words.
+_REVERSAL_RE = re.compile(
+    r"\b(after all|no longer|scratch that|changed? my mind|ignore (?:what i said|my earlier|the earlier|the previous)|"
+    r"forget (?:what i said|that|my earlier|the earlier)|disregard|instead of what i said)\b",
+    re.I,
+)
+_ACTUALLY_RE = re.compile(r"^\W*actually\b", re.I)
+_RULE_WORDS = {"don't", "dont", "never", "always", "must", "mustn't", "ensure", "avoid", "prefer", "instead",
+               "rather", "actually", "after", "longer", "scratch", "mind", "ignore", "forget", "disregard",
+               "keep", "stop", "only", "should", "shouldn't"}
+
+
+def _subject(text: str) -> set[str]:
+    from .match import tokens  # local import: match imports this module
+
+    return {t for t in tokens(text) if t not in _RULE_WORDS}
+
+
+def supersedes(newer: str, older: str) -> bool:
+    """True when a later sentence ``newer`` explicitly reverses the rule ``older`` (heuristic; see README)."""
+    old_subj, new_subj = _subject(older), _subject(newer)
+    shared = old_subj & new_subj
+    if not shared or len(shared) < (len(old_subj) + 1) // 2:
+        return False  # must be about the same thing: at least half the earlier rule's subject words
+    return bool(_REVERSAL_RE.search(newer) or _ACTUALLY_RE.search(newer))
+
 
 
 def _rel(path: str, cwd: str | None) -> str:
@@ -218,6 +252,25 @@ def _error_anchors(line: str) -> list[str]:
     return sorted(set(anchors))[:4]
 
 
+def _call_key(block: dict[str, Any]) -> str:
+    inp = block.get("input") or {}
+    return block.get("name", "") + ":" + str(inp.get("command") or inp.get("file_path") or inp.get("url") or "")
+
+
+def succeeded_calls(entries: list[dict[str, Any]]) -> set[str]:
+    """Keys of tool calls whose most recent run in ``entries`` succeeded."""
+    results = tx.tool_results(entries)
+    last: dict[str, bool] = {}
+    for _entry, block in tx.iter_tool_uses(entries):
+        res = results.get(str(block.get("id")))
+        if res is None:
+            continue
+        name = block.get("name", "")
+        failed = bool(res["is_error"]) or (name == "Bash" and _error_line(res["text"]) is not None)
+        last[_clip(_call_key(block), 200)] = not failed
+    return {k for k, ok in last.items() if ok}
+
+
 def extract_errors(entries: list[dict[str, Any]]) -> list[Item]:
     results = tx.tool_results(entries)
     seen_keys: dict[str, Item] = {}
@@ -226,7 +279,7 @@ def extract_errors(entries: list[dict[str, Any]]) -> list[Item]:
     for _entry, block in uses[-RECENT_TOOL_CALLS:]:
         name = block.get("name", "")
         inp = block.get("input") or {}
-        key = name + ":" + str(inp.get("command") or inp.get("file_path") or inp.get("url") or "")
+        key = _call_key(block)
         res = results.get(str(block.get("id")))
         if res is None:
             continue
@@ -245,6 +298,7 @@ def extract_errors(entries: list[dict[str, Any]]) -> list[Item]:
             PRIORITY["error"],
             anchors=_error_anchors(line),
             detail=f"{name}: {_clip(str(where), 120)}",
+            source=_clip(key, 200),
         )
         seen_keys[key] = item
         order.append(key)

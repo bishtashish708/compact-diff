@@ -32,6 +32,8 @@ def _bullets(items: list[Item], with_detail: bool = False) -> list[str]:
     lines = []
     for it in items:
         extra = f" ({it.detail})" if with_detail and it.detail else ""
+        if it.carried_from:
+            extra += f" [carried from compaction {it.carried_from}]"
         lines.append(f"- {it.text}{extra}")
     return lines
 
@@ -95,6 +97,8 @@ def report_markdown(verdicts: list[Verdict], meta: dict) -> str:
     ]
     if str(meta.get("snapshot", "")).startswith("late"):
         lines.append(f"- Snapshot: {meta['snapshot']}")
+    if meta.get("carried"):
+        lines.append(f"- Carried forward from earlier compactions: {meta['carried']} item(s)")
     lines += [
         "",
         f"**Kept {c[KEPT]} · Partial {c[PARTIAL]} · Dropped {c[DROPPED]}** of {len(verdicts)} tracked items.",
@@ -120,10 +124,17 @@ def report_markdown(verdicts: list[Verdict], meta: dict) -> str:
             lines.append("")
             for v in sub:
                 extra = f" — _{v.item.detail}_" if v.item.detail else ""
+                if v.item.carried_from:
+                    extra += f" _(carried from compaction {v.item.carried_from})_"
                 lines.append(f"- {v.item.text}{extra}")
                 if status == PARTIAL and v.evidence:
                     lines.append(f"  - closest in summary ({v.score:.0%}): “{v.evidence}”")
             lines.append("")
+    retired = meta.get("retired") or []
+    if retired:
+        lines += ["", "## No longer carried forward", ""]
+        for r in retired:
+            lines.append(f"- {KIND_TITLES.get(r.get('kind'), r.get('kind'))}: {r.get('text')} — _{r.get('reason')}_")
     return "\n".join(lines).rstrip() + "\n"
 
 

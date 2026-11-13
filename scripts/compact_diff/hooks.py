@@ -16,6 +16,9 @@ Lifecycle of one compaction:
    If PostCompact never runs (older Claude Code), the summary is read from the
    transcript once it appears there.
 
+Errors, files and decisions that were re-injected are carried into later snapshots by
+``carry.py``, so a later summary that drops them again is caught too.
+
 The handlers never block compaction and never fail loudly: any exception is logged
 to ``errors.log`` in the state directory and the hook exits 0.
 """
@@ -27,7 +30,7 @@ import os
 import time
 from typing import Any
 
-from . import extract, match, render, store
+from . import carry, extract, match, render, store
 from . import transcript as tx
 
 STEER_ENV = "COMPACT_DIFF_STEER"  # "0" disables the PreCompact steering note
@@ -44,8 +47,11 @@ def pre_compact(payload: dict[str, Any]) -> tuple[str, int]:
     segs = tx.segments(entries)
     cwd = payload.get("cwd")
     items = extract.extract_state(entries, segs[-1].entries, cwd)
-    steer = render.steering(items) if _enabled(STEER_ENV) else ""
     sdir = store.session_dir(payload.get("session_id", "unknown"))
+    carry_info: dict[str, Any] = {"carried": 0, "retired": []}
+    if entries:  # empty (forked session): carried items are merged in the late snapshot instead
+        items, carry_info = carry.merge(sdir, items, segs[-1].entries, len(segs))
+    steer = render.steering(items) if _enabled(STEER_ENV) else ""
     store.write_json(
         sdir / "pending.json",
         {
@@ -58,6 +64,7 @@ def pre_compact(payload: dict[str, Any]) -> tuple[str, int]:
             "transcript_entries": len(entries),
             "steered": bool(steer),
             "session_id": payload.get("session_id"),
+            "carry": carry_info,
             "items": [i.to_dict() for i in items],
         },
     )
@@ -72,14 +79,20 @@ def _finish(payload: dict[str, Any], summary: str, source: str) -> dict[str, Any
     if not pending:
         return None
     items = [extract.Item.from_dict(d) for d in pending.get("items", [])]
+    compaction = int(pending.get("compactions_before") or 0) + 1
+    carry_info = pending.get("carry") or {"carried": 0, "retired": []}
     snapshot = "precompact"
     if not items and pending.get("transcript_entries", 1) == 0:
         late = _late_items(pending)
         if late is None:
             return None  # transcript still not written; caller retries later
-        items, snapshot = late, "late (transcript was empty at PreCompact, e.g. a forked session)"
+        items, window = late
+        items, carry_info = carry.merge(sdir, items, window, compaction)
+        snapshot = "late (transcript was empty at PreCompact, e.g. a forked session)"
     verdicts = match.audit(items, summary)
     inject_text, n = render.reinjection(verdicts)
+    inject_on = _enabled(INJECT_ENV)
+    carry.update(sdir, verdicts, compaction, {v.item.id for v in verdicts if render.should_reinject(v)} if inject_on else set())
     stamp = store.stamp()
     meta = {
         "trigger": pending.get("trigger"),
@@ -89,7 +102,10 @@ def _finish(payload: dict[str, Any], summary: str, source: str) -> dict[str, Any
         "steered": pending.get("steered"),
         "summary_source": source,
         "snapshot": snapshot,
-        "reinjected": n if _enabled(INJECT_ENV) else 0,
+        "reinjected": n if inject_on else 0,
+        "compaction": compaction,
+        "carried": carry_info.get("carried", 0),
+        "retired": carry_info.get("retired", []),
     }
     report = {
         "meta": meta,
@@ -109,7 +125,7 @@ def _finish(payload: dict[str, Any], summary: str, source: str) -> dict[str, Any
     return report
 
 
-def _late_items(pending: dict[str, Any]) -> list[extract.Item] | None:
+def _late_items(pending: dict[str, Any]) -> tuple[list[extract.Item], list[dict[str, Any]]] | None:
     """Extract state after the fact from the compacted window, once the transcript exists.
 
     With ``--fork-session`` the new transcript is not on disk when PreCompact fires, so
@@ -123,7 +139,7 @@ def _late_items(pending: dict[str, Any]) -> list[extract.Item] | None:
     seen: list[dict[str, Any]] = []
     for seg in segs[: cb + 1]:
         seen.extend(seg.entries)
-    return extract.extract_state(seen, segs[cb].entries, pending.get("cwd"))
+    return extract.extract_state(seen, segs[cb].entries, pending.get("cwd")), segs[cb].entries
 
 
 def post_compact(payload: dict[str, Any]) -> tuple[str, int]:

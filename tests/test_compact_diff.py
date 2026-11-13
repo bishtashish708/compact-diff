@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "tests" / "fixtures"))
 
 import build  # noqa: E402
-from compact_diff import extract, hooks, match, render, store  # noqa: E402
+from compact_diff import carry, extract, hooks, match, render, store  # noqa: E402
 from compact_diff import transcript as tx  # noqa: E402
 from compact_diff.cli import audit_transcript  # noqa: E402
 
@@ -334,6 +334,146 @@ class HookLifecycleTests(TempStateMixin, unittest.TestCase):
         # Path traversal in session_id stays inside the state dir.
         for p in Path(self.state).rglob("*"):
             self.assertTrue(str(p.resolve()).startswith(str(Path(self.state).resolve())))
+
+
+SUMMARY_RULES_ONLY = (
+    "This session is being continued from a previous conversation that ran out of context.\n\n"
+    "Summary: the user is refactoring auth to OAuth2. Never push to main directly; open a PR instead. "
+    "Use pnpm, not npm. Don't touch anything in the legacy/ folder. Keep the old /api/v1/login endpoint "
+    "working until the mobile app ships 4.2; it must return a deprecation header. Pending: update the README "
+    "auth section; add refresh-token rotation to the API gateway."
+)
+TEST_CMD = "pnpm test tests/auth.test.ts"
+
+
+def _boundary(uid):
+    return {"type": "system", "subtype": "compact_boundary", "uuid": uid, "content": "Conversation compacted",
+            "compactMetadata": {"trigger": "manual", "preTokens": 1000, "postTokens": 100}}
+
+
+def _bash(uid, cmd, output, is_error=False):
+    return [build._a_tool(f"a-{uid}", f"t-{uid}", "Bash", {"command": cmd}), build._result(f"r-{uid}", f"t-{uid}", output, is_error)]
+
+
+class MultiCompactionTests(TempStateMixin, unittest.TestCase):
+    """Errors, files and decisions re-injected after one compaction stay tracked in the next."""
+
+    def setUp(self):
+        super().setUp()
+        self.path = os.path.join(self.tmp.name, "t.jsonl")
+        self.base = {"session_id": "s1", "transcript_path": self.path, "cwd": build.CWD}
+        self.entries = build.pre_compact_entries()
+        self.n = 0
+
+    def compact(self, summary=SUMMARY_RULES_ONLY, window=()):
+        """Append ``window`` (after the previous summary), run one full compaction, return the delivered report."""
+        self.entries = self.entries + list(window)
+        write_jsonl(self.path, self.entries)
+        hooks.run("PreCompact", json.dumps({**self.base, "hook_event_name": "PreCompact", "trigger": "manual"}))
+        hooks.run("PostCompact", json.dumps({**self.base, "compact_summary": summary}))
+        out, _ = hooks.run("Deliver", json.dumps({**self.base, "hook_event_name": "UserPromptSubmit"}))
+        self.n += 1
+        self.entries = self.entries + [_boundary(f"b{self.n}"), build._u(f"s{self.n}", summary, isCompactSummary=True)]
+        report = store.read_json(store.latest_report(session_id="s1"))
+        return report, (json.loads(out) if out else {})
+
+    def carried(self, report, kind):
+        return [v for v in report["verdicts"] if v["item"]["kind"] == kind and v["item"].get("carried_from")]
+
+    def ledger(self):
+        return store.read_json(store.session_dir("s1") / "carried.json")["items"]
+
+    def test_dropped_error_is_checked_again_and_reinjected_again(self):
+        r1, _ = self.compact()
+        self.assertTrue(any(v["item"]["kind"] == "error" and v["status"] == "dropped" for v in r1["verdicts"]))
+        r2, out2 = self.compact(window=[build._u("u9", "ok continue with the README")])
+        errs = self.carried(r2, "error")
+        self.assertEqual(len(errs), 1)
+        self.assertEqual(errs[0]["item"]["carried_from"], 1)
+        self.assertEqual(errs[0]["status"], "dropped")
+        self.assertIn("TypeError", out2["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("[carried from compaction 1]", out2["hookSpecificOutput"]["additionalContext"])
+        md = Path(r2["markdown_path"]).read_text()
+        self.assertIn("carried from compaction 1", md)
+        self.assertIn("Carried forward from earlier compactions", md)
+
+    def test_files_and_decisions_are_carried_too(self):
+        self.compact()
+        r2, _ = self.compact(window=[build._u("u9", "ok")])
+        self.assertTrue(self.carried(r2, "file"))
+        self.assertTrue(self.carried(r2, "decision"))
+
+    def test_error_resolved_by_clean_rerun_is_retired(self):
+        self.compact()
+        r2, _ = self.compact(window=_bash("x1", TEST_CMD, "PASS tests/auth.test.ts\n4 passed"))
+        self.assertFalse(self.carried(r2, "error"))
+        self.assertTrue(any("resolved" in r["reason"] for r in r2["meta"]["retired"]))
+        self.assertIn("No longer carried forward", Path(r2["markdown_path"]).read_text())
+
+    def test_same_error_again_is_not_duplicated(self):
+        self.compact()
+        fail = " FAIL  tests/auth.test.ts\n    TypeError: Cannot read properties of undefined (reading 'refreshToken')\nExit code 1"
+        r2, _ = self.compact(window=_bash("x2", TEST_CMD, fail, is_error=True))
+        errs = [v for v in r2["verdicts"] if v["item"]["kind"] == "error"]
+        self.assertEqual(len(errs), 1, [e["item"]["text"] for e in errs])
+        self.assertFalse(errs[0]["item"].get("carried_from"))  # the fresh copy wins
+
+    def test_summary_keeping_it_removes_it_from_the_ledger(self):
+        self.compact()
+        keeps = SUMMARY_RULES_ONLY + " Open error: TypeError: Cannot read properties of undefined (reading 'refreshToken') in tests/auth.test.ts."
+        r2, _ = self.compact(summary=keeps, window=[build._u("u9", "ok")])
+        self.assertTrue(any(v["status"] == "kept" for v in self.carried(r2, "error")))
+        self.assertFalse([k for k in self.ledger() if k.startswith("error:")])
+
+    def test_decision_superseded_by_newer_decision_is_retired(self):
+        self.compact()
+        newer = build._a_text("a99", "Switching to the implicit grant flow instead of PKCE, because the client is now confidential.")
+        r2, _ = self.compact(window=[newer])
+        old = [v for v in self.carried(r2, "decision") if "PKCE flow instead of implicit grant" in v["item"]["text"]]
+        self.assertFalse(old)
+        self.assertTrue(any("superseded" in r["reason"] for r in r2["meta"]["retired"]))
+
+    def test_carry_is_capped(self):
+        self.compact()
+        for i in range(carry.MAX_CARRIES):
+            r, _ = self.compact(window=[build._u(f"u{i}x", "ok")])
+            self.assertTrue(self.carried(r, "error"), f"compaction {i + 2}")
+        r, _ = self.compact(window=[build._u("ulast", "ok")])
+        self.assertFalse(self.carried(r, "error"))
+        self.assertTrue(any("carried" in x["reason"] for x in r["meta"]["retired"]))
+
+    def test_no_carry_when_reinjection_is_off(self):
+        os.environ["COMPACT_DIFF_INJECT"] = "0"
+        try:
+            self.compact()
+            r2, _ = self.compact(window=[build._u("u9", "ok")])
+        finally:
+            os.environ.pop("COMPACT_DIFF_INJECT", None)
+        self.assertFalse(self.carried(r2, "error"))
+
+    def test_audit_cli_unaffected(self):
+        self.compact()
+        self.compact(window=[build._u("u9", "ok")])
+        self.assertEqual(len(audit_transcript(self.path)), 1)  # second boundary's summary isn't in the file yet
+
+
+class SupersededRuleTests(unittest.TestCase):
+    def rules(self, *prompts):
+        entries = [build._u(f"u{i}", p) for i, p in enumerate(prompts)]
+        return [i.text for i in extract.extract_instructions(entries)]
+
+    def test_explicit_reversal_drops_the_older_rule(self):
+        got = self.rules("Use pnpm, not npm. Never push to main directly.", "Actually, use npm after all.")
+        self.assertNotIn("Use pnpm, not npm.", got)
+        self.assertIn("Never push to main directly.", got)
+
+    def test_unrelated_reversal_cue_keeps_the_rule(self):
+        got = self.rules("Don't touch anything in the legacy/ folder, it is frozen.", "We no longer need the old importer script.")
+        self.assertIn("Don't touch anything in the legacy/ folder, it is frozen.", got)
+
+    def test_actually_without_shared_subject_keeps_the_rule(self):
+        got = self.rules("Never push to main directly; open a PR instead.", "Actually, also run the tests before you push.")
+        self.assertIn("Never push to main directly; open a PR instead.", got)
 
 
 class CliTests(TempStateMixin, unittest.TestCase):
